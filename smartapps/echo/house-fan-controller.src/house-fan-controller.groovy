@@ -13,6 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *	10/12/2018		Version:1.0 R.0.0.3		Added "Auto On Mode". Fan turns on and actions are run when xx number of windows are opened.
+ *	10/12/2018		Version:1.0 R.0.0.2		Added additional safety measures. Minimum windows open required and fan auto shut off
  *	09/26/2018		Version:1.0 R.0.0.1		Alpha
  */
 definition(
@@ -43,34 +45,29 @@ preferences {
 def mainPage() {	
     dynamicPage(name: "mainPage", title:"", install: true, uninstall: false) {
         section ("Primary Fan") {
-            input "priFan", "capability.switch", title: "Select your Whole House Fan", multiple: false, required: false, submitOnChange: true
+            input "priFan", "capability.switch", title: "Select your Whole House Fan", multiple: false, required: false, submitOnChange: true,
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Fan.jpg"
         }
         if (priFan) {
             section ("Conditions") {
-                href "condPage", title: "Verify these Conditions have been met (only when fan is turned on)", description: condPageComplete(), state: condPageSettings()
+                href "condPage", title: "Verify these Conditions have been met (only when fan is turned on)", description: condPageComplete(), state: condPageSettings(),
+                image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Yellow%20Light.png"
             }
         }
         if (priFan) {
             section ("Conditions Met Actions") {
-                href "actionsPage", title: "Perform these actions when all conditions are met", description: actionsPageComplete(), state: actionsPageSettings()
+                href "actionsPage", title: "Perform these actions when all conditions are met", description: actionsPageComplete(), state: actionsPageSettings(),
+                image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Green%20Light.png"
             }
         }
         section ("Conditions Failure Actions") {
-            href "condFailPage", title: "Perform these actions when conditions have failed", description: condFailPageComplete(), state: condFailPageSettings()
+            href "condFailPage", title: "Perform these actions when conditions have failed", description: condFailPageComplete(), state: condFailPageSettings(),
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Red%20Lights.png"
         }        
         section ("Settings") {
-            href "settingsPage", title: "App and Safety Settings", description: settingsPageComplete(), state: settingsPageSettings()
+            href "settingsPage", title: "App and Safety Settings", description: settingsPageComplete(), state: settingsPageSettings(),
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Safety.jpg"
         }
-        if (safety == true) {
-            section ("Disclaimer") {
-                paragraph "You have indicated that you have gas appliances in your home. \n" +
-                    "Most gas appliances in your home have a pilot light and they exhuast through a plume " +
-                    "out of your home. If there is not adequate ventilation for your whole house fan, it can " +
-                    "potentially cause an exhaust backflow situation with those appliances. Because of this, " +
-                    "an additional safety measure has been added. House Fan Controller will prevent your whole " +
-                    "house fan from running unless there is at least ONE Open door or window in your home. " 
-            }
-        }    
     }    
 }
 
@@ -80,10 +77,12 @@ def mainPage() {
 def actionsPage() {
     dynamicPage(name: "actionsPage", title: "Configure Actions",install: false, uninstall: false) {
         section ("Actions when Fan turns On") {
-            href "onPage", title: "Perform these actions when fan is turned on", description: actionsOnPageComplete(), state: actionsOnPageSettings()
+            href "onPage", title: "Perform these actions when fan is turned on", description: actionsOnPageComplete(), state: actionsOnPageSettings(),
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Start.png"
         }
         section ("Actions when Fan turns Off") {
-            href "offPage", title: "Perform these actions when fan is turned off", description: actionsOffPageComplete(), state: actionsOffPageSettings()
+            href "offPage", title: "Perform these actions when fan is turned off", description: actionsOffPageComplete(), state: actionsOffPageSettings(),
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Stop.png"
         }
     }
 }    
@@ -94,11 +93,37 @@ def actionsPage() {
 def settingsPage() {
     dynamicPage(name: "settingsPage", title: "Configure App Settings",install: true, uninstall: true, nextPage: "mainPage") {
         section ("App Settings") {
-            input "logs", "bool", title: "Show logs in the IDE Live Logging", defaultValue: false, submitOnChange: true
+            input "logs", "bool", title: "Show logs in the IDE Live Logging", defaultValue: false, submitOnChange: true,
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Log.png"
         }
+        if (safety) {
+        section ("Auto On Mode") {
+        	input "auto", "bool", title: "Automatically turn on fan when $cContactWindowMin window(s) have been opened",defaultValue: false, submitOnChange: true,
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Auto.png"
+            }
+        }    
         section ("Safety") {
-            input "safety", "bool", title: "Do you have a gas furnace, water heater, or other pilot flame device?", defaultValue: false, submitOnChange: true
+            input "safety", "bool", title: "Do you have a gas furnace, water heater, or other pilot flame device?", defaultValue: false, submitOnChange: true,
+            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Warn.png"
         }
+        if (safety == true) {
+            section ("Disclaimer") {
+                    paragraph "**** IT IS THE OWNERS RESPONSIBILITY TO SAFELY OPERATE APPLIANCES WITHIN YOUR HOME. THE AUTHOR " +
+                    "OF THIS PROGRAM CAN NOT BE HELD RESPONSIBLE FOR YOUR ACTIONS. YOUR USE OF THIS APPLICATION IS YOUR " +
+                    "ACKNOWLEDGEMENT THAT YOU WILL NOT HOLD THE PROGRAM AUTHOR ACCOUNTABLE AND THAT YOU HAVE READ THESE WARNINGS.*** " +
+                    " \n" +
+                    " \n" +
+                 	"You have indicated that you have gas appliances in your home. \n" +
+                    "Most home gas appliances have a pilot light and exhuast through a plume " +
+                    "to the outside. If there is not adequate ventilation for your whole house fan, it can " +
+                    "potentially cause an exhaust backflow situation in which CO2 is pulled into your home. " +
+                    "Because of this, additional safety measures have been added ---> 1) If there is not adequate " +
+                    "ventilation the fan will be turned off. 2) You must select windows and a minimum amount of open " +
+                    "windows required. 3) When the minimum number of open windows is no longer met due to windows being " +
+                    "closed, the fan will be turned off. 4) House Fan Controller defaults to a minimum of One Open Window " 
+                    
+            }
+        }    
     }   
 }  
 
@@ -417,7 +442,8 @@ def initialize() {
     	else { subscribe(priFan, "switch.on", conditionHandler) } 
     
     subscribe(priFan, "switch.off", processOffActions) 
-	if(cContactWindow){ subscribe(cContactWindow, "contact.closed", safetyHandler) }
+	if(cContactWindow && safety){ subscribe(cContactWindow, "contact.closed", safetyHandler) }
+	if(auto) {subscribe(cContactWindow, "contact.open", safetyHandler) }
 }
 
 /***********************************************************************************************************
@@ -469,7 +495,8 @@ def safetyCheck(evt) {
 ************************************************************************************************************/
 def safetyHandler(evt) {
 log.info "safetyHandler called due to windows being closed."
-	def msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. The minimum number of required windows is, $cContactWindowMin"
+	def msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. " +
+    "The minimum number of required windows is, $cContactWindowMin and there are currently $devList?size()"
     def devList = []
     if (cContactWindow) {
         def cContactWindowSize = cContactWindow?.size()
@@ -495,6 +522,13 @@ log.info "safetyHandler called due to windows being closed."
             	ttsActions(msg)
             }
         }
+        if(auto) {
+        	if (devListSize >= cContactWindowMin) {
+            priFan.on()
+            msg = "The whole house fan has been automatically turned on due to $cContactWindowMin windows being opened"
+            ttsActions(msg)
+            }
+        }    
     }
 }
 
