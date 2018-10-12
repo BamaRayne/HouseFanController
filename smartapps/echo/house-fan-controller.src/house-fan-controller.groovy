@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *	10/12/2018		Version:1.0 R.0.0.4		Icons updates and code cleanup
  *	10/12/2018		Version:1.0 R.0.0.3		Added "Auto On Mode". Fan turns on and actions are run when xx number of windows are opened.
  *	10/12/2018		Version:1.0 R.0.0.2		Added additional safety measures. Minimum windows open required and fan auto shut off
  *	09/26/2018		Version:1.0 R.0.0.1		Alpha
@@ -23,9 +24,9 @@ definition(
     author: "bamarayne",
     description: "Quality Control of your homes ventilation system",
     category: "Convenience",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+	iconUrl			: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Main.png",
+	iconX2Url		: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Main2x.png",
+	iconX3Url		: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Main2x.png")
 
 
 preferences {
@@ -91,7 +92,7 @@ def actionsPage() {
 	SETTINGS PAGE
 ******************************************************************************/
 def settingsPage() {
-    dynamicPage(name: "settingsPage", title: "Configure App Settings",install: true, uninstall: true, nextPage: "mainPage") {
+    dynamicPage(name: "settingsPage", title: "Configure App Settings",install: false, uninstall: true) {
         section ("App Settings") {
             input "logs", "bool", title: "Show logs in the IDE Live Logging", defaultValue: false, submitOnChange: true,
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Log.png"
@@ -131,7 +132,7 @@ def settingsPage() {
 	CONDITIONS CONFIGURATION PAGE
 ******************************************************************************/
 def condPage() {
-    dynamicPage(name: "condPage", title: "Execute this routine when...",install: false, uninstall: false) {
+    dynamicPage(name: "condPage", title: "Perform these actions when all conditions have been satisfied",install: false, uninstall: false) {
         section ("Location Settings Conditions") {
             input "cMode", "mode", title: "Location Mode is...", multiple: true, required: false, submitOnChange: true
             input "cDays", title: "Days of the week", multiple: true, required: false, submitOnChange: true,
@@ -170,7 +171,7 @@ def condPage() {
             if (cContactWindow) {
                 input "cContactWindowCmd", "enum", title: "that are...", options: ["open":"open", "closed":"closed"], multiple: false, required: true, submitOnChange: true
                 if (cContactWindow?.size() > 1) {
-                    input "cContactWindowAll", "bool", title: "Activate this toggle if you want ALL of the Doors to be $cContactWindowCmd as a condition.", required: false, defaultValue: false, submitOnChange: true
+                    input "cContactWindowAll", "bool", title: "Activate this toggle if you want ALL of the Windows to be $cContactWindowCmd as a condition.", required: false, defaultValue: false, submitOnChange: true
                     input "cContactWindowMin", "number", title: "Minimum number of windows that must be open?", required: false, defaultValue: 1, submitOnChange: true
                 }
             }
@@ -218,9 +219,9 @@ def condFailPage() {
    ACTIONS ON PAGE
 ************************************************************************************************************/
 def onPage() {
-    dynamicPage(name: "onPage", title: "Perform these actions when conditions have not been met.", install: false, uninstall: false) {
-        section ("Fans (non-adjustable)", hideable: true, hidden: false) {
-                input "aFans", "capability.switch", title: "These Fans...", multiple: true, required: false, submitOnChange: true, image: "https://raw.githubusercontent.com/bamarayne/master/LogicRulz/icons/fan.png"
+    dynamicPage(name: "onPage", title: "Perform these actions when the whole house fan is turned on.", install: false, uninstall: false) {
+        section ("Fans (non-adjustable)") {
+                input "aFans", "capability.switch", title: "These Fans...", multiple: true, required: false, submitOnChange: true
                 if (aFans) {
                     input "aFansCmd", "enum", title: "...will...", options:["on":"turn on","off":"turn off"], multiple: false, required: false, submitOnChange:true
                     if (aFansCmd=="on") {
@@ -233,7 +234,7 @@ def onPage() {
                     	}
                     }
                 }
-            section ("Ceiling Fans (adjustable)", hideable: true, hidden: false) {
+            section ("Ceiling Fans (adjustable)") {
                 input "aCeilingFans", "capability.switchLevel", title: "These ceiling fans...", multiple: true, required: false, submitOnChange: true
                 if (aCeilingFans) {
                     input "aCeilingFansCmd", "enum", title: "...will...", options:["on":"turn on","off":"turn off","low":"set to low","med":"set to med","high":"set to high","incr":"speed up","decr":"slow down"], multiple: false, required: false, submitOnChange:true
@@ -245,7 +246,7 @@ def onPage() {
                     }
                 }
             }
-        	section ("Thermostats", hideable: true, hidden: false) {
+        	section ("Thermostats") {
                 input "cTstat", "capability.thermostat", title: "...and these thermostats will...", multiple: true, required: false, submitOnChange:true
                 if (cTstat) {
                     input "cTstatFan", "enum", title: "...set the fan mode to...", options:["auto":"auto","on":"on","off":"off","circ":"circulate"], multiple: false, required: false, submitOnChange:true
@@ -257,7 +258,7 @@ def onPage() {
                         if (cTstatMode == "incr") {paragraph "NOTE: This will increase the temp from the current room temp plus what you choose."}
                         input "tempChange", "number", title: "By this amount...", required: true, submitOnChange: true }
                 }}
-            section("More Thermostats", hideable: true, hidden: false) {
+            section("More Thermostats") {
                     input "cTstat1", "capability.thermostat", title: "More Thermostat(s)...", multiple: true, required: false, submitOnChange:true
                     if (cTstat1) {
                         input "cTstat1Fan", "enum", title: "Fan Mode", options:["auto":"Auto","on":"On","off":"Off","circ":"Circulate"],multiple: false, required: false, submitOnChange:true
@@ -270,14 +271,14 @@ def onPage() {
                             input "tempChange1", "number", title: "By this amount...", required: true, submitOnChange: true }
                     }
                 }
-            section ("Vents", hideable: true, hidden: false) {
+            section ("Vents") {
                 input "aVents", "capability.switchLevel", title: "These vents...", multiple: true, required: false, submitOnChange: true
                 if (aVents) {
                     input "aVentsCmd", "enum", title: "...will...",
                         options:["on":"open","off":"close","25":"change to 25% open","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
                 }
             }
-            section ("Shades", hideable: true, hidden: false){
+            section ("Shades"){
                 input "aShades", "capability.windowShade", title: "These window coverings...", multiple: true, required: false, submitOnChange: true
                 if (aShades) {
                     input "aShadesCmd", "enum", title: "...will...", options:["on":"open","off":"close","25":"change to 25% oetn","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
@@ -290,135 +291,121 @@ def onPage() {
    ACTIONS OFF PAGE
 ************************************************************************************************************/
 def offPage() {
-    dynamicPage(name: "offPage", title: "Perform these actions when conditions have not been met.", install: false, uninstall: false) {
-        section ("Select Actions Capabilities") {    
-            input "actionsOff", "enum", title: "Select Actions Capabilities", options:["Switches","Dimmers",
-                                                                                    "Fans & Ceiling Fans","Thermostats, Vents, & Shades"], multiple: true, required: true, submitOnChange: true
-        }
-        if (actionsOff?.contains("Switches")) {    
-            section("Simple On/Off/Toggle Switches", hideable: true, hidden: false) {    
-                input "aOtherSwitchesOff", "capability.switch", title: "On/Off/Toggle Lights & Switches", multiple: true, required: false, submitOnChange: true
-                if (aOtherSwitchesOff) {
-                    input "aOtherSwitchesCmdOff", "enum", title: "...will turn...", options: ["on":"on","off":"off","toggle":"toggle"], multiple: false, required: false, submitOnChange: true
-                }
-            }    
-            if (aOtherSwitchesCmdOff != null) {
-                section("More Simple On/Off/Toggle Switches", hideable: true, hidden: false) {    
-                    input "aOtherSwitches2Off", "capability.switch", title: "On/Off/Toggle Lights & Switches", multiple: true, required: false, submitOnChange: true
-                    if (aOtherSwitches2Off) {
-                        input "aOtherSwitchesCmd2Off", "enum", title: "...will turn...", options: ["on":"on","off":"off","toggle":"toggle"], multiple: false, required: false, submitOnChange: true
-                    }
-                }
+    dynamicPage(name: "offPage", title: "Perform these actions when the house fan is turned off.", install: false, uninstall: false) {
+        section("Simple On/Off/Toggle Switches") {    
+            input "aOtherSwitchesOff", "capability.switch", title: "On/Off/Toggle Lights & Switches", multiple: true, required: false, submitOnChange: true
+            if (aOtherSwitchesOff) {
+                input "aOtherSwitchesCmdOff", "enum", title: "...will turn...", options: ["on":"on","off":"off","toggle":"toggle"], multiple: false, required: false, submitOnChange: true
             }
         }    
-        if (actionsOff?.contains("Dimmers")) {    
-            section ("Dimmers - Selection", hideable: true, hidden: false) {    
-                input "aDimOff", "capability.switchLevel", title: "Dimmable Lights and Switches", multiple: true, required: false , submitOnChange:true
-                if (aDimOff) {
-                    input "aDimCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","set":"set the level","decrease":"decrease","increase":"increase"], multiple: false, required: false, submitOnChange: true
-                    if (aDimCmdOff=="decrease") {
-                        input "aDimDecreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
-                    }
-                    if (aDimCmdOff == "increase") {
-                        input "aDimIncreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
-                    }
-                    if (aDimCmdOff == "set") {
-                        input "aDimLVLOff", "number", title: "...of the lights to...", description: "this percentage", range: "0..100", required: false, submitOnChange: true
-                    }
-                    input "aDimDelayOff", "number", title: "Delay this action by this many seconds.", required: false, defaultValue: 0, submitOnChange: true
-                }
-            }    
-            section("More Dimmers - Selection", hideable: true, hidden: false) {
-                input "aOtherDimOff", "capability.switchLevel", title: "More Dimmers", multiple: true, required: false , submitOnChange:true
-                if (aOtherDimOff) {
-                    input "aOtherDimCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","set":"set the level","decrease":"decrease","increase":"brighten"], multiple: false, required: false, submitOnChange:true
-                    if (aOtherDimCmdOff=="decrease") {
-                        input "aOtherDimDecreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
-                    }
-                    if (aOtherDimCmdOff == "increase") {
-                        input "aOtherDimIncreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
-                    }
-                    if (aOtherDimCmdOff == "set") {
-                        input "aOtherDimLVLOff", "number", title: "...of the lights to...", description: "this percentage", range: "0..100", required: false, submitOnChange: true
-                    }
-                    input "otherDimDelayOff", "number", title: "Delay this action by this many seconds.", required: false, defaultValue: 0, submitOnChange: true
-                }
-            }
-        }   
-        if (actionsOff?.contains("Fans & Ceiling Fans")) {    
-            section ("Fans connected to switches", hideable: true, hidden: false) {
-                input "aFansOff", "capability.switch", title: "These Fans...", multiple: true, required: false, submitOnChange: true, image: "https://raw.githubusercontent.com/bamarayne/master/LogicRulz/icons/fan.png"
-                if (aFansOff) {
-                    input "aFansCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off"], multiple: false, required: false, submitOnChange:true
-                    if (aFansCmdOff=="on") {
-                        input "aFansDelayOnOff", "number", title: "Delay turning on by this many seconds", defaultValue: 0, submitOnChange:true
-             //           if (aFansDelayOnOff) input "aFansPendOnOff", "bool", title: "Activate for pending state change cancellation", required: false, default: false
-                    }
-                    if (aFansCmdOff=="off") {
-                        input "aFansDelayOffOff", "number", title: "Delay turning off by this many seconds", defaultValue: 0, submitOnChange:true
-             //           if (aFansDelayOffOff) input "aFansPendOffOff", "bool", title: "Activate for pending state change cancellation", required: false, default: false
-                    }
-                }
-            }
-            section ("Fans and Ceiling Fan Settings (adjustable)", hideable: true, hidden: false) {
-                input "aCeilingFansOff", "capability.switchLevel", title: "These ceiling fans...", multiple: true, required: false, submitOnChange: true
-                if (aCeilingFansOff) {
-                    input "aCeilingFansCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","low":"set to low","med":"set to med","high":"set to high","incr":"speed up","decr":"slow down"], multiple: false, required: false, submitOnChange:true
-                    if (aCeilingFansCmdOff == "incr") {
-                        input "aCeilingFansIncrOff", "number", title: "...by this percentage", required: true, submitOnChange: true
-                    }
-                    if (aCeilingFansCmdOff == "decr") {
-                        input "aCeilingFansDecrOff", "number", title: "...by this percentage", required: true, submitOnChange: true
-                    }
-                }
+        section("More Simple On/Off/Toggle Switches") {    
+            input "aOtherSwitches2Off", "capability.switch", title: "On/Off/Toggle Lights & Switches", multiple: true, required: false, submitOnChange: true
+            if (aOtherSwitches2Off) {
+                input "aOtherSwitchesCmd2Off", "enum", title: "...will turn...", options: ["on":"on","off":"off","toggle":"toggle"], multiple: false, required: false, submitOnChange: true
             }
         }
-
-        if (actionsOff?.contains("Thermostats, Vents, & Shades")) {    
-            section ("Thermostat", hideable: true, hidden: false) {
-                input "cTstatOff", "capability.thermostat", title: "...and these thermostats will...", multiple: true, required: false, submitOnChange:true
-                if (cTstatOff) {
-                    input "cTstatFanOff", "enum", title: "...set the fan mode to...", options:["auto":"auto","on":"on","off":"off","circ":"circulate"], multiple: false, required: false, submitOnChange:true
-                    input "cTstatModeOff", "enum", title: "...set the operating mode to...", options:["cool":"cooling","heat":"heating","auto":"auto","on":"on","off":"off","incr":"increase","decr":"decrease"], multiple: false, required: false, submitOnChange:true
-                    if (cTstatModeOff in ["cool","auto"]) { input "coolLvl", "number", title: "Cool Setpoint", required: true, submitOnChange: true}
-                    if (cTstatModeOff in ["heat","auto"]) { input "heatLvl", "number", title: "Heat Setpoint", required: true, submitOnChange: true}
-                    if (cTstatModeOff in ["incr","decr"]) {
-                        if (cTstatModeOff == "decr") {paragraph "NOTE: This will decrease the temp from the current room temp minus what you choose."}
-                        if (cTstatModeOff == "incr") {paragraph "NOTE: This will increase the temp from the current room temp plus what you choose."}
-                        input "tempChangeOff", "number", title: "By this amount...", required: true, submitOnChange: true }
-                }
+    	section ("Dimmers - Selection") {    
+        	input "aDimOff", "capability.switchLevel", title: "Dimmable Lights and Switches", multiple: true, required: false , submitOnChange:true
+        	if (aDimOff) {
+            	input "aDimCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","set":"set the level","decrease":"decrease","increase":"increase"], multiple: false, required: false, submitOnChange: true
+            if (aDimCmdOff=="decrease") {
+                input "aDimDecreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
             }
-            if(cTstatOff) {
-                section("ThermostatsOff", hideable: true, hidden: false) {
-                    input "cTstat1Off", "capability.thermostat", title: "More Thermostat(s)...", multiple: true, required: false, submitOnChange:true
-                    if (cTstat1Off) {
-                        input "cTstat1FanOff", "enum", title: "Fan Mode", options:["auto":"Auto","on":"On","off":"Off","circ":"Circulate"],multiple: false, required: false, submitOnChange:true
-                        input "cTstat1ModeOff", "enum", title: "Operating Mode", options:["cool":"Cool","heat":"Heat","auto":"Auto","on":"On","off":"Off","incr":"Increase","decr":"Decrease"],multiple: false, required: false, submitOnChange:true
-                        if (cTstat1ModeOff in ["cool","auto"]) { input "coolLvl1", "number", title: "Cool Setpoint", required: true, submitOnChange: true }
-                        if (cTstat1ModeOff in ["heat","auto"]) { input "heatLvl1", "number", title: "Heat Setpoint", required: true, submitOnChange: true }
-                        if (cTstat1ModeOff in ["incr","decr"]) {
-                            if (cTstat1ModeOff == "decr") {paragraph "NOTE: This will decrease the temp from the current room temp minus what you choose."}
-                            if (cTstat1ModeOff == "incr") {paragraph "NOTE: This will increase the temp from the current room temp plus what you choose."}
-                            input "tempChange1Off", "number", title: "By this amount...", required: true, submitOnChange: true }
-                    }
-                }
+            if (aDimCmdOff == "increase") {
+                input "aDimIncreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
             }
-            section ("Vents", hideable: true, hidden: false) {
-                input "aVentsOff", "capability.switchLevel", title: "These vents...", multiple: true, required: false, submitOnChange: true
-                if (aVentsOff) {
-                    input "aVentsCmdOff", "enum", title: "...will...",
-                        options:["on":"open","off":"close","25":"change to 25% open","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
-                }
+            if (aDimCmdOff == "set") {
+                input "aDimLVLOff", "number", title: "...of the lights to...", description: "this percentage", range: "0..100", required: false, submitOnChange: true
             }
-            section ("Shades", hideable: true, hidden: false){
-                input "aShadesOff", "capability.windowShade", title: "These window coverings...", multiple: true, required: false, submitOnChange: true
-                if (aShadesOff) {
-                    input "aShadesCmdOff", "enum", title: "...will...", options:["on":"open","off":"close","25":"change to 25% oetn","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
-                }
+            input "aDimDelayOff", "number", title: "Delay this action by this many seconds.", required: false, defaultValue: 0, submitOnChange: true
+        }
+    }    
+    section("More Dimmers - Selection") {
+        input "aOtherDimOff", "capability.switchLevel", title: "More Dimmers", multiple: true, required: false , submitOnChange:true
+        if (aOtherDimOff) {
+            input "aOtherDimCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","set":"set the level","decrease":"decrease","increase":"brighten"], multiple: false, required: false, submitOnChange:true
+            if (aOtherDimCmdOff=="decrease") {
+                input "aOtherDimDecreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
+            }
+            if (aOtherDimCmdOff == "increase") {
+                input "aOtherDimIncreaseOff", "number", title: "the lights by this %", required: false, submitOnChange: true
+            }
+            if (aOtherDimCmdOff == "set") {
+                input "aOtherDimLVLOff", "number", title: "...of the lights to...", description: "this percentage", range: "0..100", required: false, submitOnChange: true
+            }
+            input "otherDimDelayOff", "number", title: "Delay this action by this many seconds.", required: false, defaultValue: 0, submitOnChange: true
+        }
+    }
+    section ("Fans connected to switches") {
+        input "aFansOff", "capability.switch", title: "These Fans...", multiple: true, required: false, submitOnChange: true
+        if (aFansOff) {
+            input "aFansCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off"], multiple: false, required: false, submitOnChange:true
+            if (aFansCmdOff=="on") {
+                input "aFansDelayOnOff", "number", title: "Delay turning on by this many seconds", defaultValue: 0, submitOnChange:true
+                //           if (aFansDelayOnOff) input "aFansPendOnOff", "bool", title: "Activate for pending state change cancellation", required: false, default: false
+            }
+            if (aFansCmdOff=="off") {
+                input "aFansDelayOffOff", "number", title: "Delay turning off by this many seconds", defaultValue: 0, submitOnChange:true
+                //           if (aFansDelayOffOff) input "aFansPendOffOff", "bool", title: "Activate for pending state change cancellation", required: false, default: false
             }
         }
     }
+    section ("Fans and Ceiling Fan Settings (adjustable)") {
+        input "aCeilingFansOff", "capability.switchLevel", title: "These ceiling fans...", multiple: true, required: false, submitOnChange: true
+        if (aCeilingFansOff) {
+            input "aCeilingFansCmdOff", "enum", title: "...will...", options:["on":"turn on","off":"turn off","low":"set to low","med":"set to med","high":"set to high","incr":"speed up","decr":"slow down"], multiple: false, required: false, submitOnChange:true
+            if (aCeilingFansCmdOff == "incr") {
+                input "aCeilingFansIncrOff", "number", title: "...by this percentage", required: true, submitOnChange: true
+            }
+            if (aCeilingFansCmdOff == "decr") {
+                input "aCeilingFansDecrOff", "number", title: "...by this percentage", required: true, submitOnChange: true
+            }
+        }
+    }
+    section ("Thermostat") {
+        input "cTstatOff", "capability.thermostat", title: "...and these thermostats will...", multiple: true, required: false, submitOnChange:true
+        if (cTstatOff) {
+            input "cTstatFanOff", "enum", title: "...set the fan mode to...", options:["auto":"auto","on":"on","off":"off","circ":"circulate"], multiple: false, required: false, submitOnChange:true
+            input "cTstatModeOff", "enum", title: "...set the operating mode to...", options:["cool":"cooling","heat":"heating","auto":"auto","on":"on","off":"off","incr":"increase","decr":"decrease"], multiple: false, required: false, submitOnChange:true
+            if (cTstatModeOff in ["cool","auto"]) { input "coolLvl", "number", title: "Cool Setpoint", required: true, submitOnChange: true}
+            if (cTstatModeOff in ["heat","auto"]) { input "heatLvl", "number", title: "Heat Setpoint", required: true, submitOnChange: true}
+            if (cTstatModeOff in ["incr","decr"]) {
+                if (cTstatModeOff == "decr") {paragraph "NOTE: This will decrease the temp from the current room temp minus what you choose."}
+                if (cTstatModeOff == "incr") {paragraph "NOTE: This will increase the temp from the current room temp plus what you choose."}
+                input "tempChangeOff", "number", title: "By this amount...", required: true, submitOnChange: true }
+        }
+    }
+    if(cTstatOff) {
+        section("ThermostatsOff") {
+            input "cTstat1Off", "capability.thermostat", title: "More Thermostat(s)...", multiple: true, required: false, submitOnChange:true
+            if (cTstat1Off) {
+                input "cTstat1FanOff", "enum", title: "Fan Mode", options:["auto":"Auto","on":"On","off":"Off","circ":"Circulate"],multiple: false, required: false, submitOnChange:true
+                input "cTstat1ModeOff", "enum", title: "Operating Mode", options:["cool":"Cool","heat":"Heat","auto":"Auto","on":"On","off":"Off","incr":"Increase","decr":"Decrease"],multiple: false, required: false, submitOnChange:true
+                if (cTstat1ModeOff in ["cool","auto"]) { input "coolLvl1", "number", title: "Cool Setpoint", required: true, submitOnChange: true }
+                if (cTstat1ModeOff in ["heat","auto"]) { input "heatLvl1", "number", title: "Heat Setpoint", required: true, submitOnChange: true }
+                if (cTstat1ModeOff in ["incr","decr"]) {
+                    if (cTstat1ModeOff == "decr") {paragraph "NOTE: This will decrease the temp from the current room temp minus what you choose."}
+                    if (cTstat1ModeOff == "incr") {paragraph "NOTE: This will increase the temp from the current room temp plus what you choose."}
+                    input "tempChange1Off", "number", title: "By this amount...", required: true, submitOnChange: true }
+            }
+        }
+    }
+    section ("Vents") {
+        input "aVentsOff", "capability.switchLevel", title: "These vents...", multiple: true, required: false, submitOnChange: true
+        if (aVentsOff) {
+            input "aVentsCmdOff", "enum", title: "...will...",
+                options:["on":"open","off":"close","25":"change to 25% open","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
+        }
+    }
+    section ("Shades"){
+        input "aShadesOff", "capability.windowShade", title: "These window coverings...", multiple: true, required: false, submitOnChange: true
+        if (aShadesOff) {
+            input "aShadesCmdOff", "enum", title: "...will...", options:["on":"open","off":"close","25":"change to 25% oetn","50":"change to 50% open","75":"change to 75% open"], multiple: false, required: false, submitOnChange:true
+        }
+    }
 }
+}
+
 
 
 /************************************************************************************************************
