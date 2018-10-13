@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *	10/13/2018		Version:1.0 R.0.0.5		Bug fixes - messages played with every window open/close
  *	10/12/2018		Version:1.0 R.0.0.4		Icons updates and code cleanup
  *	10/12/2018		Version:1.0 R.0.0.3		Added "Auto On Mode". Fan turns on and actions are run when xx number of windows are opened.
  *	10/12/2018		Version:1.0 R.0.0.2		Added additional safety measures. Minimum windows open required and fan auto shut off
@@ -430,7 +431,7 @@ def initialize() {
     
     subscribe(priFan, "switch.off", processOffActions) 
 	if(cContactWindow && safety){ subscribe(cContactWindow, "contact.closed", safetyHandler) }
-	if(auto) {subscribe(cContactWindow, "contact.open", safetyHandler) }
+	if(auto) {subscribe(cContactWindow, "contact.open", autoMode) }
 }
 
 /***********************************************************************************************************
@@ -485,7 +486,10 @@ log.info "safetyHandler called due to windows being closed."
 	def msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. " +
     "The minimum number of required windows is, $cContactWindowMin and there are currently $devList?size()"
     def devList = []
+    def fanStatus = priFan.currentValue("switch")
+    log.info "fanStatus = $fanStatus"
     if (cContactWindow) {
+    	if (fanStatus == "on") {
         def cContactWindowSize = cContactWindow?.size()
         cContactWindow.each { deviceName ->
             def status = deviceName.currentValue("contact")
@@ -507,18 +511,36 @@ log.info "safetyHandler called due to windows being closed."
             if (devListSize < cContactWindowSize) { 
                 safetyMethod() 
             	ttsActions(msg)
+            	}
             }
         }
-        if(auto) {
-        	if (devListSize >= cContactWindowMin) {
-            priFan.on()
-            msg = "The whole house fan has been automatically turned on due to $cContactWindowMin windows being opened"
-            ttsActions(msg)
-            }
-        }    
     }
 }
 
+/***********************************************************************************************************
+   CONDITIONS HANDLER
+************************************************************************************************************/
+def autoMode(evt) {
+	log.info "autoMode method called"
+    def devList = []
+    if (cContactWindow) {
+        def cContactWindowSize = cContactWindow?.size()
+        cContactWindow.each { deviceName ->
+            def status = deviceName.currentValue("contact")
+            if (status == "open"){  
+                String device  = (String) deviceName
+                devList += device
+                log.info "devList = $devList"
+            }
+        }
+       	def devListSize = devList.size()
+        	if (devListSize == cContactWindowMin) {
+            priFan.on()
+            def msg = "The whole house fan has been automatically turned on due to $cContactWindowMin windows being opened"
+            ttsActions(msg)
+            }
+        }    
+	}
 /***********************************************************************************************************
    CONDITIONS HANDLER
 ************************************************************************************************************/
