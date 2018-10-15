@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *	10/15/2018		Version:1.0 R.0.0.6		Safety Check required whenever fan turns on. Disclaimer requirement added. Code Cleanup
  *	10/13/2018		Version:1.0 R.0.0.5		Bug fixes - messages played with every window open/close
  *	10/12/2018		Version:1.0 R.0.0.4		Icons updates and code cleanup
  *	10/12/2018		Version:1.0 R.0.0.3		Added "Auto On Mode". Fan turns on and actions are run when xx number of windows are opened.
@@ -51,25 +52,25 @@ def mainPage() {
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Fan.jpg"
         }
         if (priFan) {
+        	section ("Settings") {
+            	href "settingsPage", title: "App and Safety Settings", description: settingsPageComplete(), state: settingsPageSettings(),
+            	image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Safety.jpg"
+        	}
+        }    
+        if (dontBlameMe==true) {
             section ("Conditions") {
                 href "condPage", title: "Verify these Conditions have been met (only when fan is turned on)", description: condPageComplete(), state: condPageSettings(),
                 image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Yellow%20Light.png"
             }
-        }
-        if (priFan) {
             section ("Conditions Met Actions") {
                 href "actionsPage", title: "Perform these actions when all conditions are met", description: actionsPageComplete(), state: actionsPageSettings(),
                 image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Green%20Light.png"
             }
-        }
         section ("Conditions Failure Actions") {
-            href "condFailPage", title: "Perform these actions when conditions have failed", description: condFailPageComplete(), state: condFailPageSettings(),
+            href "condFailPage", title: "Send messages when the conditions have failed", description: condFailPageComplete(), state: condFailPageSettings(),
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Red%20Lights.png"
+        	}
         }        
-        section ("Settings") {
-            href "settingsPage", title: "App and Safety Settings", description: settingsPageComplete(), state: settingsPageSettings(),
-            image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Safety.jpg"
-        }
     }    
 }
 
@@ -98,24 +99,17 @@ def settingsPage() {
             input "logs", "bool", title: "Show logs in the IDE Live Logging", defaultValue: false, submitOnChange: true,
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Log.png"
         }
-        if (safety) {
         section ("Auto On Mode") {
-        	input "auto", "bool", title: "Automatically turn on fan when $cContactWindowMin window(s) have been opened",defaultValue: false, submitOnChange: true,
+        	input "auto", "bool", title: "Turn on your fan simply by opening windows",defaultValue: false, submitOnChange: true,
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Auto.png"
             }
-        }    
         section ("Safety") {
             input "safety", "bool", title: "Do you have a gas furnace, water heater, or other pilot flame device?", defaultValue: false, submitOnChange: true,
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Warn.png"
         }
-        if (safety == true) {
-            section ("Disclaimer") {
-                    paragraph "**** IT IS THE OWNERS RESPONSIBILITY TO SAFELY OPERATE APPLIANCES WITHIN YOUR HOME. THE AUTHOR " +
-                    "OF THIS PROGRAM CAN NOT BE HELD RESPONSIBLE FOR YOUR ACTIONS. YOUR USE OF THIS APPLICATION IS YOUR " +
-                    "ACKNOWLEDGEMENT THAT YOU WILL NOT HOLD THE PROGRAM AUTHOR ACCOUNTABLE AND THAT YOU HAVE READ THESE WARNINGS.*** " +
-                    " \n" +
-                    " \n" +
-                 	"You have indicated that you have gas appliances in your home. \n" +
+        if (safety) {
+        	section ("Safety Acknowledgement") {
+            	paragraph "You have indicated that you have gas appliances in your home. \n" +
                     "Most home gas appliances have a pilot light and exhuast through a plume " +
                     "to the outside. If there is not adequate ventilation for your whole house fan, it can " +
                     "potentially cause an exhaust backflow situation in which CO2 is pulled into your home. " +
@@ -123,9 +117,21 @@ def settingsPage() {
                     "ventilation the fan will be turned off. 2) You must select windows and a minimum amount of open " +
                     "windows required. 3) When the minimum number of open windows is no longer met due to windows being " +
                     "closed, the fan will be turned off. 4) House Fan Controller defaults to a minimum of One Open Window " 
-                    
-            }
-        }    
+            		}
+        		}        
+        section ("Disclaimer") {
+        	paragraph "You must read the following for the app to be operational"
+            	input "dontBlameMe", "bool", title: "Disclaimer Acknowledgement", defaultValue: false, submitOnChange: true
+        }
+        if (dontBlameMe) {
+            section ("Disclaimer") {
+                    paragraph "**** IT IS THE OWNERS RESPONSIBILITY TO SAFELY OPERATE APPLIANCES WITHIN YOUR HOME. THE AUTHOR " +
+                    "OF THIS PROGRAM CAN NOT BE HELD RESPONSIBLE FOR YOUR ACTIONS. YOUR USE OF THIS APPLICATION IS YOUR " +
+                    "ACKNOWLEDGEMENT THAT YOU WILL NOT HOLD THE PROGRAM AUTHOR ACCOUNTABLE AND THAT YOU HAVE READ THESE WARNINGS.*** " +
+                    " \n" +
+                    " \n" 
+                    }
+                }    
     }   
 }  
 
@@ -133,7 +139,19 @@ def settingsPage() {
 	CONDITIONS CONFIGURATION PAGE
 ******************************************************************************/
 def condPage() {
-    dynamicPage(name: "condPage", title: "Perform these actions when all conditions have been satisfied",install: false, uninstall: false) {
+    dynamicPage(name: "condPage", title: "The conditions must be met before the fan will turn on",install: false, uninstall: false) {
+        section ("Ventilation Requirements") {
+        	input "minWinOpen", "text", title: "Minimum # of Windows required to be open for fan to be on."
+            input "minWinClose", "text", title: "Minimum # of Windows required to be open to keep fan on."
+        	}
+        section ("Windows") {
+            input "cContactWindow", "capability.contactSensor", title: "Contact Sensors only on Windows", multiple: true, required: false, submitOnChange: true
+            if (cContactWindow) {
+                if (cContactWindow?.size() > 1) {
+                    input "cContactWindowAll", "bool", title: "Activate this toggle if you want ALL of the Windows to be open as a condition.", required: false, defaultValue: false, submitOnChange: true
+                }
+            }
+        }
         section ("Location Settings Conditions") {
             input "cMode", "mode", title: "Location Mode is...", multiple: true, required: false, submitOnChange: true
             input "cDays", title: "Days of the week", multiple: true, required: false, submitOnChange: true,
@@ -164,16 +182,6 @@ def condPage() {
                 input "cContactDoorCmd", "enum", title: "that are...", options: ["open":"open", "closed":"closed"], multiple: false, required: true, submitOnChange: true
                 if (cContactDoor?.size() > 1) {
                     input "cContactDoorAll", "bool", title: "Activate this toggle if you want ALL of the Doors to be $cContactDoorCmd as a condition.", required: false, defaultValue: false, submitOnChange: true
-                }
-            }
-        }
-        section ("Windows") {
-            input "cContactWindow", "capability.contactSensor", title: "Contact Sensors only on Windows", multiple: true, required: false, submitOnChange: true
-            if (cContactWindow) {
-                input "cContactWindowCmd", "enum", title: "that are...", options: ["open":"open", "closed":"closed"], multiple: false, required: true, submitOnChange: true
-                if (cContactWindow?.size() > 1) {
-                    input "cContactWindowAll", "bool", title: "Activate this toggle if you want ALL of the Windows to be $cContactWindowCmd as a condition.", required: false, defaultValue: false, submitOnChange: true
-                    input "cContactWindowMin", "number", title: "Minimum number of windows that must be open?", required: false, defaultValue: 1, submitOnChange: true
                 }
             }
         }
@@ -426,121 +434,145 @@ def updated() {
 }
 
 def initialize() {
-	if(priFan && safety){ subscribe(priFan, "switch.on", safetyCheck) }
-    	else { subscribe(priFan, "switch.on", conditionHandler) } 
-    
-    subscribe(priFan, "switch.off", processOffActions) 
-	if(cContactWindow && safety){ subscribe(cContactWindow, "contact.closed", safetyHandler) }
-	if(auto) {subscribe(cContactWindow, "contact.open", autoMode) }
+	state.safetyCheck = false
+    state.autoMode = false
+    if(priFan)				{ subscribe(priFan, "switch.on", autoModeOn) } 
+    if(priFan)				{ subscribe(priFan, "switch.off", processOffActions) } 					
+	if(auto) 				{ subscribe(cContactWindow, "contact.open", autoModeOn) } 			
+    						  subscribe(cContactWindow, "contact.closed", autoModeOff)   		
 }
 
 /***********************************************************************************************************
    SAFETY CHECK 
 ************************************************************************************************************/
 def safetyCheck(evt) {
+    log.warn "Performing Safety Check"
+    state.safetyCheck = false
     def devList = []
-    def safetyCheck = true
-    def safetyTime = 2
-    def msg = "Hey, The $priFan is being turned off due to there not being adequate ventilation available. Please open some windows and select those " +
+    def msg = "The $priFan is being turned off due to failing the safety check. There is not adequate ventilation available. Please open some windows and select those " +
         "windows in the House Fan Controller app."
-    log.warn "Performing Safety Check by Verifying proper ventilation due to gas appliances present"
-    if (cContactWindow == null) { 
-        sendPush(msg)
-        runIn(safetyTime, safetyMethod)
+    if (dontBlameMe==false) {
+        msg = "You have attempted to utilize the House Fan Controller app without acknowledgement of the safety precautions. Please open the app, navigate to the "+
+            "App and Safety Settings section, then activate the Disclaimer Acknowledgement"
         ttsActions(msg)
-        return
+        return state.safetyCheck
     }
-    def cContactWindowSize = cContactWindow?.size()
-    cContactWindow.each { deviceName ->
-        def status = deviceName.currentValue("contact")
-        if (status == "open"){ 
-            String device  = (String) deviceName
-            devList += device
-        }
-    }
-    def devListSize = devList?.size()
-    if (devListSize == 0) { 
-        safetyCheck = false
-    }
-    if (safetyCheck == true) {
-        conditionHandler(evt)
-    }
-    if (safetyCheck == false) {
-        runIn(safetyTime, safetyMethod)
-        if (failMsg == null) {
-            ttsActions(msg)
-            sendPush(msg)
-        }
-        else {
-            ttsActions(failMsg)
-        }
-    }
-    log.info "Safety check is $safetyCheck"
-}
+    else {
 
-/***********************************************************************************************************
-   SAFETY HANDLER
-************************************************************************************************************/
-def safetyHandler(evt) {
-log.info "safetyHandler called due to windows being closed."
-	def msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. " +
-    "The minimum number of required windows is, $cContactWindowMin and there are currently $devList?size()"
-    def devList = []
-    def fanStatus = priFan.currentValue("switch")
-    log.info "fanStatus = $fanStatus"
-    if (cContactWindow) {
-    	if (fanStatus == "on") {
+        if (cContactWindow == null) { 
+            sendPush(msg)
+            runIn(safetyTime, safetyMethod)
+            ttsActions(msg)
+            log.warn "SafetyCheck FAILED"
+            return state.safetyCheck
+        }
         def cContactWindowSize = cContactWindow?.size()
         cContactWindow.each { deviceName ->
             def status = deviceName.currentValue("contact")
-            if (status == "open"){  
+            if ("${status}" == "open"){ 
                 String device  = (String) deviceName
                 devList += device
-                log.info "devList = $devList"
             }
         }
         def devListSize = devList?.size()
-        if(!cContactWindowAll) {
-            if (devListSize < cContactWindowMin) { 
-                log.info "Windows devListSize of $cContactWindowMin NOT met, turning off Fans"
-                safetyMethod()
+        if ("${devListSize}" < "${minWinOpen}") {
+            safetyMethod()
+            log.warn "SafetyCheck FAILED"
+            if ("${failMsg}" == null) {
+                ttsActions(msg)
+                sendPush(msg)
+            }
+            else {
                 ttsActions(msg)
             }
-        }        
-        if(cContactWindowAll) {
-            if (devListSize < cContactWindowSize) { 
-                safetyMethod() 
-            	ttsActions(msg)
-            	}
-            }
+            return state.safetyCheck
+        }    
+        if ("${devListSize}" >= "${minWinOpen}") {			// min windows are open == fan stays on
+            state.safetyCheck = true
+            log.info "SafetyCheck PASSED!"
+            return ["state.safetyCheck":state.safetyCheck, "msg":msg ]
         }
     }
 }
 
 /***********************************************************************************************************
-   CONDITIONS HANDLER
+   AUTO MODE ON
 ************************************************************************************************************/
-def autoMode(evt) {
-	log.info "autoMode method called"
+def autoModeOn(evt) {
+    log.info "autoMode On method called"
+
+    safetyCheck(text)
+
+    if (state.safetyCheck == true) {
+        def fanStatus = priFan.currentValue("switch")
+        def devList = []
+        if (fanStatus == "off" && auto == true) {
+            if (minWinOpen > 0) {
+                def cContactWindowSize = cContactWindow?.size()
+                cContactWindow.each { deviceName ->
+                    def status = deviceName.currentValue("contact")
+                    if (status == "open"){  
+                        String device  = (String) deviceName
+                        devList += device
+                    }
+                }
+                def devListSize = devList.size()
+                if (devListSize > minWinOpen) {
+                    log.info "There are at least $minWinOpen windows already open, no actions taken"
+                }
+                if ("${devListSize}" == "${minWinOpen}") {
+                    def msg = "The whole house fan has been automatically turned on due to $minWinOpen windows being opened"
+                    state.autoMode = true
+                    conditionHandler(evt)
+                    ttsActions(msg)
+                }
+            }
+        }
+        else if (fanStatus == "on") {
+            conditionHandler(evt)
+        }
+    }
+}
+
+
+/***********************************************************************************************************
+   AUTO MODE Off
+************************************************************************************************************/
+def autoModeOff(evt) {
+    log.info "autoMode Off method called"
+    def msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. " +
+        "The minimum number of required open windows is, $minWinOpen"
+    def fanStatus = priFan.currentValue("switch")
     def devList = []
-    if (cContactWindow) {
+    if (fanStatus == "on") {
         def cContactWindowSize = cContactWindow?.size()
         cContactWindow.each { deviceName ->
             def status = deviceName.currentValue("contact")
             if (status == "open"){  
                 String device  = (String) deviceName
                 devList += device
-                log.info "devList = $devList"
             }
         }
-       	def devListSize = devList.size()
-        	if (devListSize == cContactWindowMin) {
-            priFan.on()
-            def msg = "The whole house fan has been automatically turned on due to $cContactWindowMin windows being opened"
+        def devListSize = devList.size()
+        log.info "Open Windows = $devListSize. Minimum requirement is $minWinClose"
+        if ("${devListSize}" < "${minWinClose}") {
+            safetyMethod()
             ttsActions(msg)
+            priFan.off()
+        }
+        if(cContactWindowAll == true) {
+            if ("${devListSize}" < "${cContactWindowSize}") { 
+                msg = "The $priFan is being turned off due to the number of open windows falling below the number of windows required to be open. " +
+                    "The minimum number of required open windows is, $cContactWindowSize"
+                priFan.off()
+                state.autoMode = false
+                ttsActions(msg)
             }
-        }    
-	}
+        }
+    }    
+}
+
+
 /***********************************************************************************************************
    CONDITIONS HANDLER
 ************************************************************************************************************/
@@ -559,7 +591,6 @@ def conditionHandler(evt) {
     def cGarageOk = false
     def devList = []
     def safetyTime = 5
-//    def cContactWindowMin
     def msg = "The $priFan is being turned off due to your preset conditions having not been met. Please see the House Fan Controller app for more information."
 
     log.info "Verifying Conditions:"
@@ -724,13 +755,13 @@ def conditionHandler(evt) {
         }
         def devListSize = devList?.size()
         if(!cContactWindowAll) {
-            if (devListSize >= cContactWindowMin) { 
-                log.info "Windows devListSize = $devListSize and the minimum is = $cContactWindowMin"
+            if ("${devListSize}" >= "${minWinOpen}") { 
+                log.info "Windows that are open open = $devListSize and the minimum required open is = $minWinOpen"
                 cWindowOk = true  
             }
             else {
                 cWindowOk = false
-                log.warn "Minimum of $cContactWindowMin windows are required to be open, there are $devList.size windows open"
+                log.warn "Minimum of $minWinOpen windows are required to be open, there are $devList.size windows open"
             }
         }        
         if(cContactWindowAll) {
@@ -769,7 +800,7 @@ def conditionHandler(evt) {
             ttsActions(msg)
         }
         else {
-            ttsActions(failMsg)
+            ttsActions(msg)
             runIn(10, safetyMethod)
         }
     }
@@ -790,158 +821,159 @@ def safetyMethod() {
 ***********************************************************************************************************************/
 def processOnActions(evt){
     log.info "Process On Actions Method activated."
-//    if (conditionHandler()==true && getTimeOk()==true) {
-        def result 
-        def devList = []
-        def aSwitchSize = aSwitch?.size()
+    if (auto == true) {
+        priFan.on()
+    }
+    def result 
+    def devList = []
+    def aSwitchSize = aSwitch?.size()
 
-        // OTHER SWITCHES
-        if (aOtherSwitches) {
-            if (aOtherSwitchesCmd == "on") {aOtherSwitches?.on()}
-            if (aOtherSwitchesCmd == "off") {aOtherSwitches?.off()}
-            if (aOtherSwitchesCmd == "toggle") {toggle2()}
-        }
-        if (aOtherSwitches2) {
-            if (aOtherSwitchesCmd2 == "on") {aOtherSwitches2?.on()}
-            if (aOtherSwitchesCmd2 == "off") {aOtherSwitches2?.off()}
-            if (aOtherSwitchesCmd2 == "toggle") {toggle3()}
-        }
+    // OTHER SWITCHES
+    if (aOtherSwitches) {
+        if (aOtherSwitchesCmd == "on") {aOtherSwitches?.on()}
+        if (aOtherSwitchesCmd == "off") {aOtherSwitches?.off()}
+        if (aOtherSwitchesCmd == "toggle") {toggle2()}
+    }
+    if (aOtherSwitches2) {
+        if (aOtherSwitchesCmd2 == "on") {aOtherSwitches2?.on()}
+        if (aOtherSwitchesCmd2 == "off") {aOtherSwitches2?.off()}
+        if (aOtherSwitchesCmd2 == "toggle") {toggle3()}
+    }
 
-        // DIMMERS
-        if (aDim) {
-            runIn(aDimDelay, dimmersHandler)
-        }
-        if (aOtherDim) { 
-            runIn(otherDimDelay, otherDimmersHandler)
-        }
+    // DIMMERS
+    if (aDim) {
+        runIn(aDimDelay, dimmersHandler)
+    }
+    if (aOtherDim) { 
+        runIn(otherDimDelay, otherDimmersHandler)
+    }
 
-        // CEILING FANS
-        if (aCeilingFans) {
-            if (aCeilingFansCmd == "on") {aCeilingFans.on()}
-            else if (aCeilingFansCmd == "off") {aCeilingFans.off()}
-            else if (aCeilingFansCmd == "low") {aCeilingFans.setLevel(33)}
-            else if (aCeilingFansCmd == "med") {aCeilingFans.setLevel(66)}
-            else if (aCeilingFansCmd == "high") {aCeilingFans.setLevel(99)}
-            if (aCeilingFansCmd == "incr" && aCeilingFans) {
-                def newLevel
-                aCeilingFans?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aCeilingFansIncr
-                    newLevel = newLevel + currLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel > 99 ? 99 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
-            }
-            if (aCeilingFansCmd == "decr" && aCeilingFans) {
-                def newLevel
-                aCeilingFans?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aCeilingFansDecr
-                    newLevel = currLevel - newLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel > 99 ? 99 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
+    // CEILING FANS
+    if (aCeilingFans) {
+        if (aCeilingFansCmd == "on") {aCeilingFans.on()}
+        else if (aCeilingFansCmd == "off") {aCeilingFans.off()}
+        else if (aCeilingFansCmd == "low") {aCeilingFans.setLevel(33)}
+        else if (aCeilingFansCmd == "med") {aCeilingFans.setLevel(66)}
+        else if (aCeilingFansCmd == "high") {aCeilingFans.setLevel(99)}
+        if (aCeilingFansCmd == "incr" && aCeilingFans) {
+            def newLevel
+            aCeilingFans?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aCeilingFansIncr
+                newLevel = newLevel + currLevel
+                newLevel = newLevel < 0 ? 0 : newLevel > 99 ? 99 : newLevel
+                deviceD.setLevel(newLevel)
             }
         }
-        // FANS
-        if (aFansCmd == "on") { 
-            runIn(aFansDelayOn, aFansOn) }
-        if (aFansCmd == "off") {
-            runIn(aFansDelayOff, aFansOff) }
-
-        // VENTS
-        if (aVents) {
-            if (sVentsCmd == "on") {aVents.setLevel(100)}
-            else if (aVentsCmd == "off") {aVents.off()}
-            else if (aVentsCmd == "25") {aVents.setLevel(25)}
-            else if (aVentsCmd == "50") {aVents.setLevel(50)}
-            else if (aVentsCmd == "75") {aVents.setLevel(75)}
+        if (aCeilingFansCmd == "decr" && aCeilingFans) {
+            def newLevel
+            aCeilingFans?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aCeilingFansDecr
+                newLevel = currLevel - newLevel
+                newLevel = newLevel < 0 ? 0 : newLevel > 99 ? 99 : newLevel
+                deviceD.setLevel(newLevel)
+            }
         }
+    }
+    // FANS
+    if (aFansCmd == "on") { 
+        runIn(aFansDelayOn, aFansOn) }
+    if (aFansCmd == "off") {
+        runIn(aFansDelayOff, aFansOff) }
 
-        // WINDOW COVERINGS
-        if (aShades) {
-            if (aShadesCmd == "open") {aShades.setLevel(100)}
-            else if (aShadesCmd == "close") {aShades.setLevel(0)}
-            else if (aShadesCmd == "25") {aShades.setLevel(25)}
-            else if (aShadesCmd == "50") {aShades.setLevel(50)}
-            else if (aShadesCmd == "75") {aShades.setLevel(75)}
-        }
+    // VENTS
+    if (aVents) {
+        if (sVentsCmd == "on") {aVents.setLevel(100)}
+        else if (aVentsCmd == "off") {aVents.off()}
+        else if (aVentsCmd == "25") {aVents.setLevel(25)}
+        else if (aVentsCmd == "50") {aVents.setLevel(50)}
+        else if (aVentsCmd == "75") {aVents.setLevel(75)}
+    }
 
-        // THERMOSTATS
-        if (cTstat) { thermostats() }
-        if (cTstat1) { thermostats1() }
-//    }    
+    // WINDOW COVERINGS
+    if (aShades) {
+        if (aShadesCmd == "open") {aShades.setLevel(100)}
+        else if (aShadesCmd == "close") {aShades.setLevel(0)}
+        else if (aShadesCmd == "25") {aShades.setLevel(25)}
+        else if (aShadesCmd == "50") {aShades.setLevel(50)}
+        else if (aShadesCmd == "75") {aShades.setLevel(75)}
+    }
+
+    // THERMOSTATS
+    if (cTstat) { thermostats() }
+    if (cTstat1) { thermostats1() }
 }
 
 /***********************************************************************************************************************
     DIMMERS HANDLER - FOR ACTIONS ON PROCESS
 ***********************************************************************************************************************/
 def dimmersHandler() {
-	if (logs) log.info "Dimmers Handler activated"
-		if (aDim) {
-            if (aDimCmd == "on") {aDim.on()}
-            else if (aDimCmd == "off") {aDim.off()}
-            if (aDimCmd == "set" && aDim) {
-                def level = aDimLVL < 0 || !aDimLVL ?  0 : aDimLVL >100 ? 100 : aDimLVL as int
-                    aDim.setLevel(level)
+    if (logs) log.info "Dimmers Handler activated"
+    if (aDim) {
+        if (aDimCmd == "on") {aDim.on()}
+        else if (aDimCmd == "off") {aDim.off()}
+        if (aDimCmd == "set" && aDim) {
+            def level = aDimLVL < 0 || !aDimLVL ?  0 : aDimLVL >100 ? 100 : aDimLVL as int
+                aDim.setLevel(level)
+        }
+        if (aDimCmd == "increase" && aDim) {
+            def newLevel
+            aDim?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aDimIncrease
+                newLevel = newLevel + currLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
-            if (aDimCmd == "increase" && aDim) {
-                def newLevel
-                aDim?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aDimIncrease
-                    newLevel = newLevel + currLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
-            }
-            if (aDimCmd == "decrease" && aDim) {
-                def newLevel
-                aDim?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aDimDecrease
-                    newLevel = currLevel - newLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
+        }
+        if (aDimCmd == "decrease" && aDim) {
+            def newLevel
+            aDim?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aDimDecrease
+                newLevel = currLevel - newLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
         }
     }
+}
 
 /***********************************************************************************************************************
     OTHER DIMMERS HANDLER - FOR ACTIONS ON PROCESS
 ***********************************************************************************************************************/
 def otherDimmersHandler() {
-	if (logs) log.info "Other Dimmers Handler activated"
-        if (aOtherDim) {
-            if (aOtherDimCmd == "on") {aOtherDim.on()}
-            else if (aOtherDimCmd == "off") {aOtherDim.off()}
-            if (aOtherDimCmd == "set" && aOtherDim) {
-                def otherLevel = aOtherDimLVL < 0 || !aOtherDimLVL ?  0 : aOtherDimLVL >100 ? 100 : aOtherDimLVL as int
-                    aOtherDim?.setLevel(otherLevel)
-            }
-            if (aOtherDimCmd == "increase" && aOtherDim) {
-                def newLevel
-                aOtherDim.each { deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aOtherDimIncrease
-                    newLevel = newLevel + currLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
-            }
-            if (aOtherDimCmd == "decrease" && aOtherDim) {
-                def newLevel
-                aOtherDimCmd?.each { deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aOtherDimDecrease
-                    newLevel = currLevel - newLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
+    if (logs) log.info "Other Dimmers Handler activated"
+    if (aOtherDim) {
+        if (aOtherDimCmd == "on") {aOtherDim.on()}
+        else if (aOtherDimCmd == "off") {aOtherDim.off()}
+        if (aOtherDimCmd == "set" && aOtherDim) {
+            def otherLevel = aOtherDimLVL < 0 || !aOtherDimLVL ?  0 : aOtherDimLVL >100 ? 100 : aOtherDimLVL as int
+                aOtherDim?.setLevel(otherLevel)
+        }
+        if (aOtherDimCmd == "increase" && aOtherDim) {
+            def newLevel
+            aOtherDim.each { deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aOtherDimIncrease
+                newLevel = newLevel + currLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
         }
-	}
+        if (aOtherDimCmd == "decrease" && aOtherDim) {
+            def newLevel
+            aOtherDimCmd?.each { deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aOtherDimDecrease
+                newLevel = currLevel - newLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
+            }
+        }
+    }
+}
 
 /************************************************************************************************************
 FANS Handler  - FOR ACTIONS ON PROCESS
@@ -1159,78 +1191,77 @@ def processOffActions(evt){
     // THERMOSTATS
     if (cTstatOff) { thermostatsOff() }
     if (cTstat1Off) { thermostats1Off() }
-
 }    
 
 /***********************************************************************************************************************
     DIMMERS HANDLER - FOR ACTIONS OFF PROCESS
 ***********************************************************************************************************************/
 def dimmersOffHandlerOff() {
-	if (logs) log.info "Dimmers Handler activated"
-		if (aDimOff) {
-            if (aDimCmdOff == "on") {aDimOff.on()}
-            else if (aDimCmdOff == "off") {aDimOff.off()}
-            if (aDimCmdOff == "set" && aDimOff) {
-                def level = aDimLVLOff < 0 || !aDimLVLOff ?  0 : aDimLVLOff >100 ? 100 : aDimLVLOff as int
-                    aDimOff.setLevel(level)
+    if (logs) log.info "Dimmers Handler activated"
+    if (aDimOff) {
+        if (aDimCmdOff == "on") {aDimOff.on()}
+        else if (aDimCmdOff == "off") {aDimOff.off()}
+        if (aDimCmdOff == "set" && aDimOff) {
+            def level = aDimLVLOff < 0 || !aDimLVLOff ?  0 : aDimLVLOff >100 ? 100 : aDimLVLOff as int
+                aDimOff.setLevel(level)
+        }
+        if (aDimCmdOff == "increase" && aDim) {
+            def newLevel
+            aDimOff?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aDimIncrease
+                newLevel = newLevel + currLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
-            if (aDimCmdOff == "increase" && aDim) {
-                def newLevel
-                aDimOff?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aDimIncrease
-                    newLevel = newLevel + currLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
-            }
-            if (aDimCmdOff == "decrease" && aDimOff) {
-                def newLevel
-                aDimOff?.each {deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aDimDecrease
-                    newLevel = currLevel - newLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
+        }
+        if (aDimCmdOff == "decrease" && aDimOff) {
+            def newLevel
+            aDimOff?.each {deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aDimDecrease
+                newLevel = currLevel - newLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
         }
     }
+}
 
 /***********************************************************************************************************************
     OTHER DIMMERS HANDLER - FOR ACTIONS OFF PROCESS
 ***********************************************************************************************************************/
 def otherDimmersOffHandler() {
-	if (logs) log.info "Other Dimmers Handler activated"
-        if (aOtherDimOff) {
-            if (aOtherDimCmdOff == "on") {aOtherDimOff.on()}
-            else if (aOtherDimCmdOff == "off") {aOtherDimOff.off()}
-            if (aOtherDimCmdOff == "set" && aOtherDimOff) {
-                def otherLevel = aOtherDimLVLOff < 0 || !aOtherDimLVLOff ?  0 : aOtherDimLVLOff >100 ? 100 : aOtherDimLVLOff as int
-                    aOtherDimOff?.setLevel(otherLevel)
-            }
-            if (aOtherDimCmdOff == "increase" && aOtherDimOff) {
-                def newLevel
-                aOtherDimOff.each { deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aOtherDimIncreaseOff
-                    newLevel = newLevel + currLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
-            }
-            if (aOtherDimCmdOff == "decrease" && aOtherDimOff) {
-                def newLevel
-                aOtherDimCmdOff?.each { deviceD ->
-                    def currLevel = deviceD.latestValue("level")
-                    newLevel = aOtherDimDecreaseOff
-                    newLevel = currLevel - newLevel
-                    newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
-                    deviceD.setLevel(newLevel)
-                }
+    if (logs) log.info "Other Dimmers Handler activated"
+    if (aOtherDimOff) {
+        if (aOtherDimCmdOff == "on") {aOtherDimOff.on()}
+        else if (aOtherDimCmdOff == "off") {aOtherDimOff.off()}
+        if (aOtherDimCmdOff == "set" && aOtherDimOff) {
+            def otherLevel = aOtherDimLVLOff < 0 || !aOtherDimLVLOff ?  0 : aOtherDimLVLOff >100 ? 100 : aOtherDimLVLOff as int
+                aOtherDimOff?.setLevel(otherLevel)
+        }
+        if (aOtherDimCmdOff == "increase" && aOtherDimOff) {
+            def newLevel
+            aOtherDimOff.each { deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aOtherDimIncreaseOff
+                newLevel = newLevel + currLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
             }
         }
-	}
+        if (aOtherDimCmdOff == "decrease" && aOtherDimOff) {
+            def newLevel
+            aOtherDimCmdOff?.each { deviceD ->
+                def currLevel = deviceD.latestValue("level")
+                newLevel = aOtherDimDecreaseOff
+                newLevel = currLevel - newLevel
+                newLevel = newLevel < 0 ? 0 : newLevel >100 ? 100 : newLevel
+                deviceD.setLevel(newLevel)
+            }
+        }
+    }
+}
 
 /************************************************************************************************************
 FANS Handler  - FOR ACTIONS OFF PROCESS
@@ -1253,7 +1284,7 @@ private thermostatsOff(evt) {
         def currentMode = deviceD.currentValue("thermostatMode")
         def currentTMP = deviceD.currentValue("temperature")
         if (cTstatModeOff == "off") { cTstatOff.off()
-                                 }
+                                    }
         if (cTstatModeOff == "auto" || cTstatModeOff == "on") {
             cTstatOff.auto()
             cTstatOff.setCoolingSetpoint(coolLvl)
@@ -1313,7 +1344,7 @@ private thermostats1Off(evt) {
         def currentMode = deviceD.currentValue("thermostatMode")
         def currentTMP = deviceD.currentValue("temperature")
         if (cTstat1ModeOff == "off") { cTstat1Off.off()
-                                  }
+                                     }
         if (cTstat1ModeOff == "auto" || cTstat1ModeOff == "on") {
             cTstat1Off.auto()
             cTstat1Off.setCoolingSetpoint(coolLvl1)
@@ -1365,7 +1396,6 @@ private thermostats1Off(evt) {
         if (cTstat1FanOff == "circ") { cTstat1Off.fanCirculate() }
     }
 }
-
 
 /******************************************************************************************************
 	CONDITIONS - CERTAIN TIME RESTRICTION
@@ -1441,8 +1471,8 @@ private timeIntervalLabel() {
 SPEECH AND TEXT ACTION
 ******************************************************************************************************/
 def ttsActions(msg) {
-    log.info "TTS Actions Handler activated"
     def tts = msg
+    log.info "TTS Actions Handler activated with this message: $tts"
     if (echoDevice) {
         log.info "echoDevice: $echoDevice activated"
         echoDevice?.speak(tts)
@@ -1478,8 +1508,9 @@ def ttsActions(msg) {
 /***********************************************************************************************************************
 	SMS HANDLER
 ***********************************************************************************************************************/
-private void sendtxt(tts) {
+private void sendtxt(msg) {
     if (logging) log.info "Send Text method activated."
+    def tts = msg
     if (sendContactText) { 
         sendNotificationToContacts(tts, recipients)
         if (push || shmNotification) { 
@@ -1520,14 +1551,14 @@ MAIN PAGE STATUS CHECKS
 // SETTINGS PAGE
 def settingsPageSettings() {
     def result = "Tap here to Configure"
-    if (logs || safety) {
+    if (dontBlameMe) {
         result = "complete"
     }
     return result
 }
 def settingsPageComplete() {
     def result = "Tap here to Configure"
-    if (logs || safety) {
+    if (dontBlameMe) {
         result = "Configured!"
     }
     return result
@@ -1536,15 +1567,15 @@ def settingsPageComplete() {
 // CONDITIONS PAGE
 def condPageSettings() {
     def result = "Tap here to Configure"
-    if (cMode || cDays) {
+    if (cMode || cDays || cContactWindow) {
         result = "complete"
     }
     return result
 }
 def condPageComplete() {
     def result = "Tap here to Configure"
-    if (cMode || cDays) {
-        result = "Conditions have been Configured!"
+    if (cMode || cDays || cContactWindow) {
+        result = "Configured!"
     }
     return result
 }  
