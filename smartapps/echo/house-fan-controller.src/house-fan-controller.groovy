@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *
+ *	10/21/2018		Version:1.0 R.0.0.7		Auto off operations performed when last window closed instead of when fan turns off.
  *	10/15/2018		Version:1.0 R.0.0.6		Safety Check required whenever fan turns on. Disclaimer requirement added. Code Cleanup
  *	10/13/2018		Version:1.0 R.0.0.5		Bug fixes - messages played with every window open/close
  *	10/12/2018		Version:1.0 R.0.0.4		Icons updates and code cleanup
@@ -84,7 +85,7 @@ def actionsPage() {
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Start.png"
         }
         section ("Actions when Fan turns Off") {
-            href "offPage", title: "Perform these actions when fan is turned off", description: actionsOffPageComplete(), state: actionsOffPageSettings(),
+            href "offPage", title: "Perform these actions when all windows have been closed", description: actionsOffPageComplete(), state: actionsOffPageSettings(),
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Stop.png"
         }
     }
@@ -100,7 +101,7 @@ def settingsPage() {
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Log.png"
         }
         section ("Auto On Mode") {
-        	input "auto", "bool", title: "Turn on your fan simply by opening windows",defaultValue: false, submitOnChange: true,
+        	input "auto", "bool", title: "Turn on/off your fan simply by opening/closing windows",defaultValue: false, submitOnChange: true,
             image: "https://raw.githubusercontent.com/BamaRayne/HouseFanController/icons/Auto.png"
             }
         section ("Safety") {
@@ -132,8 +133,8 @@ def settingsPage() {
                     " \n" 
                     }
                 }    
-    }   
-}  
+    		}   
+		}  
 
 /******************************************************************************
 	CONDITIONS CONFIGURATION PAGE
@@ -206,14 +207,12 @@ def condFailPage() {
     dynamicPage(name: "condFailPage", title: "Perform these actions when conditions have not been met.", install: false, uninstall: false) {
         section ("Conditions Fail Alert Message") {
             input "failMsg", "text", title: "Send this message when the conditions have not been met", required: false, submitOnChange: true
+        	def msg = failMsg
         }
-        section ("Send Conditions Failed Message to") {
-            input "synthDevice", "capability.speechSynthesis", title: "Speech Synthesis Devices", multiple: true, required: false
-            input "echoDevice", "capability.notification", title: "Amazon Alexa Devices", multiple: true, required: false
-            input "sonosDevice", "capability.musicPlayer", title: "Music Player Devices", required: false, multiple: true, submitOnChange: true    
-            if (sonosDevice) {
-                input "volume", "number", title: "Temporarily change volume", description: "0-100% (default value = 30%)", required: false
+        section("Send Messages to Smart Message Controller") {
+            input "smc", "bool", title: "Send audio messages to the Smart Message Controller App", defaultValue: true, submitOnChange: true
             }
+        section ("Send Message to SMS and Push") {
             input "sendText", "bool", title: "Enable Text Notifications", required: false, submitOnChange: true     
             if (sendText){      
                 paragraph "You may enter multiple phone numbers separated by comma to deliver the Alexa message. E.g. +18045551122,+18046663344"
@@ -437,7 +436,7 @@ def initialize() {
 	state.safetyCheck = false
     state.autoMode = false
     if(priFan)				{ subscribe(priFan, "switch.on", autoModeOn) } 
-    if(priFan)				{ subscribe(priFan, "switch.off", processOffActions) } 					
+    if(priFan)				{ subscribe(priFan, "switch.off", windowsOpen) } 					
 	if(auto) 				{ subscribe(cContactWindow, "contact.open", autoModeOn) } 			
     						  subscribe(cContactWindow, "contact.closed", autoModeOff)   		
 }
@@ -476,15 +475,17 @@ def safetyCheck(evt) {
         }
         def devListSize = devList?.size()
         if ("${devListSize}" < "${minWinOpen}") {
+        	if (priFan == "on") {
             safetyMethod()
             log.warn "SafetyCheck FAILED"
             if ("${failMsg}" == null) {
                 ttsActions(msg)
                 sendPush(msg)
+            	}
             }
-            else {
-                ttsActions(msg)
-            }
+//            else {
+//                ttsActions(msg)
+//            }
             return state.safetyCheck
         }    
         if ("${devListSize}" >= "${minWinOpen}") {			// min windows are open == fan stays on
@@ -534,6 +535,26 @@ def autoModeOn(evt) {
     }
 }
 
+/***********************************************************************************************************
+   WINDOWS LEFT OPEN MESSAGE
+************************************************************************************************************/
+def windowsOpen(evt) {
+    log.info "Windows open message sent"
+    def devList = []
+    def cContactWindowSize = cContactWindow?.size()
+    cContactWindow.each { deviceName ->
+        def status = deviceName.currentValue("contact")
+        if (status == "open"){  
+            String device  = (String) deviceName
+            devList += device
+        }
+    }    
+    def msg = "The air conditioner will be reset when the last window is closed. The following $devList.size() windows " +
+        "are currently open.  $devList"
+    ttsActions(msg)
+}
+    
+	
 
 /***********************************************************************************************************
    AUTO MODE Off
@@ -567,9 +588,13 @@ def autoModeOff(evt) {
                 priFan.off()
                 state.autoMode = false
                 ttsActions(msg)
+                
             }
         }
-    }    
+    }
+    if (priFan == off) {
+    	processOffActions(evt)
+    }
 }
 
 
@@ -1471,29 +1496,13 @@ private timeIntervalLabel() {
 SPEECH AND TEXT ACTION
 ******************************************************************************************************/
 def ttsActions(msg) {
+	def result
     def tts = msg
+    def message = msg
     log.info "TTS Actions Handler activated with this message: $tts"
-    if (echoDevice) {
-        log.info "echoDevice: $echoDevice activated"
-        echoDevice?.speak(tts)
-    }
-    if (synthDevice) {
-        synthDevice?.speak(tts) 
-    }
-    if (tts) {
-        state.sound = textToSpeech(tts instanceof List ? tts[9] : tts)
-    }
-    else {
-        state.sound = textToSpeech("You selected the custom message option but did not enter a message in the $app.label Smart App")
-    }
-    if (sonosDevice){ 
-        def currVolLevel = sonosDevice.latestValue("level")
-        def currMuteOn = sonosDevice.latestValue("mute").contains("muted")
-        if (currMuteOn) { 
-            sonosDevice.unmute()
-        }
-        def sVolume = settings.volume ?: 20
-        sonosDevice?.playTrackAndResume(state.sound.uri, state.sound.duration, sVolume)
+	if(smc) {
+    sendLocationEvent(name: "House Fan Controller", value: "${app.label}", isStateChange: true, descriptionText: "${message}")
+    log.info "House Fan Controller has sent this to SMC: --> $message"
     }
     if(recipients || sms){				
         sendtxt(tts)
@@ -1501,10 +1510,7 @@ def ttsActions(msg) {
     if (push) {
         sendPushMessage(tts)
     }	
-    state.lastMessage = tts
-    return
 }
-
 /***********************************************************************************************************************
 	SMS HANDLER
 ***********************************************************************************************************************/
@@ -1659,4 +1665,9 @@ def pTimeComplete() {def text = "Tap here to Configure"
                      text}
 
 
+/******************************************************************************************************
+DEVELOPMENT AREA - WORK HERE AND MOVE IT WHEN YOU'RE DONE
+******************************************************************************************************/
 
+
+	
